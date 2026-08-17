@@ -390,6 +390,7 @@ export default function AdminIncomesPage() {
                   </div>
                 );
               })}
+              </div>
             </div>
           </div>
 
