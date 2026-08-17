@@ -11,6 +11,8 @@ const NAV_ITEMS = [
   { label: 'Operating Hours', href: '/admin/hours', icon: '🕐' },
   { label: 'Blocked Dates', href: '/admin/blocked-dates', icon: '🚫' },
   { label: 'Incomes', href: '/admin/incomes', icon: '📈' },
+  { label: 'Costs', href: '/admin/costs', icon: '💸' },
+  { label: 'Categories', href: '/admin/categories', icon: '🏷️' },
 ];
 
 export default function AdminShell({ children }: { children: React.ReactNode }) {
@@ -32,7 +34,8 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
         setAdminEmail(data.email);
         setAdminRole(data.role || 'admin');
         
-        if (data.role === 'staff' && pathname !== '/admin/incomes') {
+        const staffPages = ['/admin/incomes', '/admin/costs', '/admin/categories'];
+        if (data.role === 'staff' && !staffPages.includes(pathname)) {
           router.push('/admin/incomes');
         } else {
           setLoading(false);
@@ -69,7 +72,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
         </div>
 
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-          {NAV_ITEMS.filter(item => adminRole === 'admin' || item.href === '/admin/incomes').map((item) => {
+          {NAV_ITEMS.filter(item => adminRole === 'admin' || ['/admin/incomes', '/admin/costs', '/admin/categories'].includes(item.href)).map((item) => {
             const isActive = pathname === item.href;
             return (
               <Link

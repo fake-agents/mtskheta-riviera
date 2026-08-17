@@ -3,7 +3,8 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import AdminShell from '@/components/admin/AdminShell';
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
+  PieChart, Pie, Cell, Legend
 } from 'recharts';
 
 interface DailyIncome {
@@ -14,8 +15,23 @@ interface DailyIncome {
   totalGel: number;
 }
 
+interface CostEntry {
+  id: number;
+  date: string;
+  amountGel: number;
+  categoryId: number;
+}
+
+interface CostCategory {
+  id: number;
+  name: string;
+  color: string;
+}
+
 export default function AdminIncomesPage() {
   const [incomes, setIncomes] = useState<Record<string, DailyIncome>>({});
+  const [costs, setCosts] = useState<CostEntry[]>([]);
+  const [categories, setCategories] = useState<CostCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<'yearly' | 'calendar' | 'dashboard'>('calendar');
 
@@ -27,22 +43,25 @@ export default function AdminIncomesPage() {
   const [editValue, setEditValue] = useState('');
   const editInputRef = useRef<HTMLInputElement>(null);
 
-  const fetchIncomes = () => {
+  const fetchData = () => {
     setLoading(true);
-    fetch('/api/admin/incomes')
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          const map: Record<string, DailyIncome> = {};
-          data.forEach(item => { map[item.date] = item; });
-          setIncomes(map);
-        }
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+    Promise.all([
+      fetch('/api/admin/incomes').then(r => r.json()),
+      fetch('/api/admin/costs').then(r => r.json()),
+      fetch('/api/admin/cost-categories').then(r => r.json()),
+    ]).then(([incData, costsData, catsData]) => {
+      if (Array.isArray(incData)) {
+        const map: Record<string, DailyIncome> = {};
+        incData.forEach(item => { map[item.date] = item; });
+        setIncomes(map);
+      }
+      if (Array.isArray(costsData)) setCosts(costsData);
+      if (Array.isArray(catsData)) setCategories(catsData);
+      setLoading(false);
+    }).catch(() => setLoading(false));
   };
 
-  useEffect(() => { fetchIncomes(); }, []);
+  useEffect(() => { fetchData(); }, []);
 
   // Focus input when editing starts
   useEffect(() => {
@@ -90,6 +109,15 @@ export default function AdminIncomesPage() {
     });
   };
 
+  // Costs grouped by date
+  const costsByDate = useMemo(() => {
+    const map: Record<string, number> = {};
+    costs.forEach(c => {
+      map[c.date] = (map[c.date] || 0) + c.amountGel;
+    });
+    return map;
+  }, [costs]);
+
   const handleKeyDown = (e: React.KeyboardEvent, dateStr: string) => {
     if (e.key === 'Enter') {
       handleSaveIncome(dateStr, editValue);
@@ -101,9 +129,10 @@ export default function AdminIncomesPage() {
   // ─── Yearly View Data ────────────────────────────────────────────────────────
   const yearlyData = useMemo(() => {
     const yearPrefix = currentYear.toString();
-    const months = Array.from({ length: 12 }, (_, i) => ({ month: i, totalGel: 0, tripsCount: 0 }));
+    const months = Array.from({ length: 12 }, (_, i) => ({ month: i, totalGel: 0, tripsCount: 0, totalCosts: 0 }));
     let yearTotalGel = 0;
     let yearTotalTrips = 0;
+    let yearTotalCosts = 0;
 
     Object.values(incomes).forEach(inc => {
       if (inc.date.startsWith(yearPrefix)) {
@@ -116,10 +145,19 @@ export default function AdminIncomesPage() {
       }
     });
 
+    costs.forEach(c => {
+      if (c.date.startsWith(yearPrefix)) {
+        const [, m] = c.date.split('-');
+        const monthIdx = parseInt(m, 10) - 1;
+        months[monthIdx].totalCosts += c.amountGel;
+        yearTotalCosts += c.amountGel;
+      }
+    });
+
     const maxMonthGel = Math.max(...months.map(m => m.totalGel), 1); // prevent div by 0
 
-    return { months, yearTotalGel, yearTotalTrips, maxMonthGel };
-  }, [incomes, currentYear]);
+    return { months, yearTotalGel, yearTotalTrips, maxMonthGel, yearTotalCosts };
+  }, [incomes, costs, currentYear]);
 
   // ─── Monthly View Data ────────────────────────────────────────────────────────
   const monthStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
@@ -152,6 +190,11 @@ export default function AdminIncomesPage() {
 
     return { monthTotalGel, monthTotalTrips, maxDayGel };
   }, [incomes, currentMonth]);
+
+  const monthlyCostTotal = useMemo(() => {
+    const prefix = `${currentMonth.getFullYear()}-${(currentMonth.getMonth() + 1).toString().padStart(2, '0')}`;
+    return costs.filter(c => c.date.startsWith(prefix)).reduce((s, c) => s + c.amountGel, 0);
+  }, [costs, currentMonth]);
 
   // ─── Dashboard Data Preparation ────────────────────────────────────────────────
   const chartData = useMemo(() => {
@@ -195,6 +238,27 @@ export default function AdminIncomesPage() {
     return { monthlyChart, weekdayChart, totalTrips, totalRevenue, avgDaily };
   }, [incomes]);
 
+  // Costs dashboard data
+  const costsDashboard = useMemo(() => {
+    let totalCosts = 0;
+    const byCat: Record<number, number> = {};
+    costs.forEach(c => {
+      totalCosts += c.amountGel;
+      byCat[c.categoryId] = (byCat[c.categoryId] || 0) + c.amountGel;
+    });
+
+    const pieData = Object.entries(byCat).map(([catId, amount]) => {
+      const cat = categories.find(c => c.id === parseInt(catId));
+      return {
+        name: cat?.name || 'Unknown',
+        value: amount,
+        color: cat?.color || '#ef4444',
+      };
+    }).sort((a, b) => b.value - a.value);
+
+    return { totalCosts, pieData, netProfit: chartData.totalRevenue - totalCosts };
+  }, [costs, categories, chartData.totalRevenue]);
+
   return (
     <AdminShell>
       <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-8 gap-4">
@@ -231,25 +295,39 @@ export default function AdminIncomesPage() {
         </div>
       ) : view === 'yearly' ? (
         <div className="bg-[#111827] border border-white/10 rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-8">
-            <button
-              onClick={() => setCurrentYear(y => y - 1)}
-              className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 text-white/50 hover:text-white hover:bg-white/10 transition-all"
-            >
-              ←
-            </button>
-            <div className="text-center">
-              <h3 className="text-2xl font-bold text-white mb-1">{currentYear}</h3>
-              <p className="text-[#c9a84c] text-sm font-semibold">
-                {yearlyData.yearTotalTrips} Trips • {yearlyData.yearTotalGel.toLocaleString()} ₾ Total
-              </p>
+          <div className="flex flex-col sm:flex-row items-center justify-between mb-8 gap-6">
+            <div className="flex items-center gap-6">
+              <button
+                onClick={() => setCurrentYear(y => y - 1)}
+                className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 text-white/50 hover:text-white hover:bg-white/10 transition-all"
+              >
+                ←
+              </button>
+              <div className="text-center">
+                <h3 className="text-2xl font-bold text-white mb-1">{currentYear}</h3>
+                <p className="text-white/50 text-sm font-semibold">
+                  {yearlyData.yearTotalTrips} Trips
+                </p>
+              </div>
+              <button
+                onClick={() => setCurrentYear(y => y + 1)}
+                className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 text-white/50 hover:text-white hover:bg-white/10 transition-all"
+              >
+                →
+              </button>
             </div>
-            <button
-              onClick={() => setCurrentYear(y => y + 1)}
-              className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 text-white/50 hover:text-white hover:bg-white/10 transition-all"
-            >
-              →
-            </button>
+
+            <div className="flex items-center gap-4 sm:gap-6 bg-[#0a0f1a] px-5 py-3 rounded-xl border border-white/5 w-full sm:w-auto justify-center sm:justify-end">
+              <div className="text-left">
+                <p className="text-[10px] text-emerald-500/70 uppercase tracking-wider font-bold mb-0.5">Total Income</p>
+                <p className="text-lg sm:text-xl font-bold text-emerald-400">{yearlyData.yearTotalGel.toLocaleString()} ₾</p>
+              </div>
+              <div className="w-px h-8 bg-white/10"></div>
+              <div className="text-left">
+                <p className="text-[10px] text-red-500/70 uppercase tracking-wider font-bold mb-0.5">Total Costs</p>
+                <p className="text-lg sm:text-xl font-bold text-red-400">{yearlyData.yearTotalCosts.toLocaleString()} ₾</p>
+              </div>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -279,13 +357,17 @@ export default function AdminIncomesPage() {
                   style={{ backgroundColor: bgColor, borderColor: borderColor, borderWidth: 1 }}
                 >
                   <h4 className="text-lg font-bold text-white mb-3 group-hover:text-[#c9a84c] transition-colors">{monthName}</h4>
-                  <div className="flex justify-between items-end">
-                    <div className="text-white/50 text-xs uppercase tracking-wider">
-                      {m.tripsCount} trips
+                  <div className="flex flex-col gap-1 mt-3">
+                    <div className="flex justify-between items-end">
+                      <div className="text-white/50 text-[10px] uppercase tracking-wider font-semibold">Income ({m.tripsCount} trips)</div>
+                      <div className="text-emerald-400 font-bold text-sm">{m.totalGel.toLocaleString()} ₾</div>
                     </div>
-                    <div className="text-white font-bold text-lg">
-                      {m.totalGel.toLocaleString()} ₾
-                    </div>
+                    {m.totalCosts > 0 && (
+                      <div className="flex justify-between items-end pt-1 border-t border-white/5">
+                        <div className="text-white/50 text-[10px] uppercase tracking-wider font-semibold">Costs</div>
+                        <div className="text-red-400 font-bold text-sm">-{m.totalCosts.toLocaleString()} ₾</div>
+                      </div>
+                    )}
                   </div>
                 </div>
               );
@@ -329,6 +411,7 @@ export default function AdminIncomesPage() {
 
                 const dateStr = `${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2,'0')}-${date.getDate().toString().padStart(2,'0')}`;
                 const income = incomes[dateStr];
+                const dayCost = costsByDate[dateStr] || 0;
                 const isEditing = editingDate === dateStr;
 
                 // Color the day text based on % of max day in the month
@@ -380,6 +463,17 @@ export default function AdminIncomesPage() {
                             <span className="text-[10px] xl:text-xs font-medium text-white/50">{income.tripsCount} trips</span>
                             <span className="text-xs xl:text-sm font-bold" style={{ color: textColor }}>{income.totalGel} ₾</span>
                           </div>
+                          {dayCost > 0 && (
+                            <div className="flex items-center justify-end mt-0.5">
+                              <span className="text-[10px] xl:text-xs font-bold text-red-400">-{dayCost} ₾</span>
+                            </div>
+                          )}
+                        </div>
+                      ) : dayCost > 0 ? (
+                        <div className="flex flex-col gap-0.5 mt-1">
+                          <div className="flex items-center justify-end">
+                            <span className="text-[10px] xl:text-xs font-bold text-red-400">-{dayCost} ₾</span>
+                          </div>
                         </div>
                       ) : (
                         <div className="h-full w-full flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity mt-4">
@@ -405,7 +499,19 @@ export default function AdminIncomesPage() {
                   <p className="text-xs text-emerald-500/70 uppercase tracking-wider font-semibold mb-1">Total Income</p>
                   <p className="text-3xl font-bold text-emerald-400">{monthlyData.monthTotalGel.toLocaleString()} ₾</p>
                 </div>
+
+                <div className="bg-[#0a0f1a] rounded-xl p-4 border border-red-500/20">
+                  <p className="text-xs text-red-500/70 uppercase tracking-wider font-semibold mb-1">Total Costs</p>
+                  <p className="text-3xl font-bold text-red-400">{monthlyCostTotal.toLocaleString()} ₾</p>
+                </div>
                 
+                <div className={`bg-[#0a0f1a] rounded-xl p-4 border ${(monthlyData.monthTotalGel - monthlyCostTotal) >= 0 ? 'border-emerald-500/20' : 'border-red-500/20'}`}>
+                  <p className="text-xs text-white/50 uppercase tracking-wider font-semibold mb-1">Net Profit</p>
+                  <p className={`text-3xl font-bold ${(monthlyData.monthTotalGel - monthlyCostTotal) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {(monthlyData.monthTotalGel - monthlyCostTotal).toLocaleString()} ₾
+                  </p>
+                </div>
+
                 <div className="bg-[#0a0f1a] rounded-xl p-4 border border-[#c9a84c]/20">
                   <p className="text-xs text-[#c9a84c]/70 uppercase tracking-wider font-semibold mb-1">Total Trips</p>
                   <p className="text-3xl font-bold text-[#c9a84c]">{monthlyData.monthTotalTrips.toLocaleString()}</p>
@@ -427,18 +533,34 @@ export default function AdminIncomesPage() {
       ) : (
         <div className="space-y-6">
           {/* Dashboard View */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
             <div className="bg-[#111827] border border-white/10 rounded-2xl p-6">
-              <p className="text-sm text-white/50 mb-1">Total Revenue (All Time)</p>
-              <p className="text-3xl font-bold text-emerald-400">{chartData.totalRevenue.toLocaleString()} ₾</p>
+              <p className="text-sm text-white/50 mb-1">Total Revenue</p>
+              <p className="text-2xl font-bold text-emerald-400">{chartData.totalRevenue.toLocaleString()} ₾</p>
+            </div>
+            <div className="bg-[#111827] border border-red-500/10 rounded-2xl p-6">
+              <p className="text-sm text-white/50 mb-1">Total Costs</p>
+              <p className="text-2xl font-bold text-red-400">{costsDashboard.totalCosts.toLocaleString()} ₾</p>
+            </div>
+            <div className={`bg-[#111827] border rounded-2xl p-6 ${costsDashboard.netProfit >= 0 ? 'border-emerald-500/10' : 'border-red-500/10'}`}>
+              <p className="text-sm text-white/50 mb-1">Net Profit</p>
+              <p className={`text-2xl font-bold ${costsDashboard.netProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                {costsDashboard.netProfit.toLocaleString()} ₾
+              </p>
             </div>
             <div className="bg-[#111827] border border-white/10 rounded-2xl p-6">
-              <p className="text-sm text-white/50 mb-1">Total Trips (All Time)</p>
-              <p className="text-3xl font-bold text-white">{chartData.totalTrips.toLocaleString()}</p>
+              <p className="text-sm text-white/50 mb-1">Total Trips</p>
+              <p className="text-2xl font-bold text-white">{chartData.totalTrips.toLocaleString()}</p>
             </div>
             <div className="bg-[#111827] border border-white/10 rounded-2xl p-6">
               <p className="text-sm text-white/50 mb-1">Daily Average</p>
-              <p className="text-3xl font-bold text-[#c9a84c]">{chartData.avgDaily.toLocaleString()} ₾ <span className="text-sm font-normal text-white/30">/ day</span></p>
+              <p className="text-2xl font-bold text-[#c9a84c]">{chartData.avgDaily.toLocaleString()} ₾</p>
+            </div>
+            <div className="bg-[#111827] border border-white/10 rounded-2xl p-6">
+              <p className="text-sm text-white/50 mb-1">Profit Margin</p>
+              <p className={`text-2xl font-bold ${costsDashboard.netProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                {chartData.totalRevenue > 0 ? Math.round((costsDashboard.netProfit / chartData.totalRevenue) * 100) : 0}%
+              </p>
             </div>
           </div>
 
@@ -464,6 +586,40 @@ export default function AdminIncomesPage() {
               )}
             </div>
 
+            {/* Costs by Category Pie Chart */}
+            <div className="bg-[#111827] border border-white/10 rounded-2xl p-6 h-[400px]">
+              <h3 className="text-lg font-bold text-white mb-6">Costs by Category</h3>
+              {costsDashboard.pieData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={costsDashboard.pieData}
+                      cx="50%"
+                      cy="45%"
+                      innerRadius={60}
+                      outerRadius={110}
+                      paddingAngle={3}
+                      dataKey="value"
+                      label={({ name, percent }: { name?: string; percent?: number }) => `${name || ''} ${((percent || 0) * 100).toFixed(0)}%`}
+                      labelLine={{ stroke: 'rgba(255,255,255,0.2)' }}
+                    >
+                      {costsDashboard.pieData.map((entry, idx) => (
+                        <Cell key={idx} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{ backgroundColor: '#0a0f1a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
+                      formatter={(value) => [`${Number(value).toLocaleString()} ₾`, 'Amount']}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex items-center justify-center text-white/30">No cost data available</div>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-[#111827] border border-white/10 rounded-2xl p-6 h-[400px]">
               <h3 className="text-lg font-bold text-white mb-6">Average Revenue by Weekday</h3>
               {chartData.weekdayChart.some(d => d.avgGel > 0) ? (

@@ -68,3 +68,21 @@ export const dailyIncomes = pgTable('daily_incomes', {
   tripsCount: integer('trips_count').notNull(), // e.g., 3
   totalGel: integer('total_gel').notNull(), // e.g., 470
 });
+
+// ─── Cost Categories ─────────────────────────────────────────────────
+export const costCategories = pgTable('cost_categories', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull(),
+  color: text('color').default('#ef4444').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// ─── Daily Costs ─────────────────────────────────────────────────────
+export const dailyCosts = pgTable('daily_costs', {
+  id: serial('id').primaryKey(),
+  date: date('date').notNull(),
+  amountGel: integer('amount_gel').notNull(),
+  categoryId: integer('category_id').references(() => costCategories.id).notNull(),
+  comment: text('comment'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
