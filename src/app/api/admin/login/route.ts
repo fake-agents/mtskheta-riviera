@@ -10,14 +10,12 @@ export async function POST(request: NextRequest) {
     }
 
     console.log("Login Attempt:", { email, password });
-    const isValid = await validateAdmin(email, password);
-    console.log("IsValid result:", isValid);
-    
-    if (!isValid) {
+    const admin = await validateAdmin(email, password);
+    if (!admin) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
-    const token = createToken(email);
+    const token = createToken(email, admin.role || 'admin');
 
     const response = NextResponse.json({ success: true, email });
     response.cookies.set(COOKIE_NAME, token, {
