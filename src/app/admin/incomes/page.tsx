@@ -314,8 +314,9 @@ export default function AdminIncomesPage() {
               </button>
             </div>
 
-            <div className="grid grid-cols-7 gap-px bg-white/10 border border-white/10 rounded-xl overflow-hidden">
-              {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
+            <div className="overflow-x-auto w-full pb-4">
+              <div className="grid grid-cols-7 gap-px bg-white/10 border border-white/10 rounded-xl overflow-hidden min-w-[350px] sm:min-w-[500px]">
+                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
                 <div key={day} className="bg-[#111827] text-center py-3 text-xs font-semibold text-white/50 uppercase tracking-wider">
                   {day}
                 </div>
@@ -356,17 +357,21 @@ export default function AdminIncomesPage() {
                       {date.getDate()}
                     </span>
                     
-                    <div className="mt-1 xl:mt-2 h-full">
+                    <div className="mt-1 xl:mt-2 h-full relative">
                       {isEditing ? (
                         <input
                           ref={editInputRef}
                           type="text"
+                          inputMode="decimal"
                           value={editValue}
-                          onChange={e => setEditValue(e.target.value)}
+                          onChange={e => {
+                            const val = e.target.value.replace(/\./g, ',');
+                            setEditValue(val);
+                          }}
                           onBlur={() => handleSaveIncome(dateStr, editValue)}
                           onKeyDown={(e) => handleKeyDown(e, dateStr)}
                           placeholder="120, 150"
-                          className="w-full bg-black/30 border border-[#c9a84c]/30 rounded p-1.5 xl:p-2 text-xs xl:text-sm text-white outline-none focus:border-[#c9a84c]"
+                          className="absolute z-30 top-0 left-1/2 -translate-x-1/2 w-20 sm:w-full sm:static sm:translate-x-0 bg-[#1a2333] sm:bg-black/30 border border-[#c9a84c] rounded p-1 text-xs xl:text-sm text-center sm:text-left text-white outline-none shadow-lg sm:shadow-none focus:ring-2 focus:ring-[#c9a84c]"
                         />
                       ) : income ? (
                         <div className="flex flex-col gap-0.5 xl:gap-1">
