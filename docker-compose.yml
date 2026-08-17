@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    container_name: riviera-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: riviera_user
+      POSTGRES_PASSWORD: riviera_password
+      POSTGRES_DB: riviera_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - riviera_pgdata:/var/lib/postgresql/data
+
+volumes:
+  riviera_pgdata:

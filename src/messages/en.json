@@ -1,0 +1,160 @@
+{
+  "nav": {
+    "home": "Home",
+    "about": "About",
+    "gallery": "Gallery",
+    "booking": "Book Now",
+    "location": "Location",
+    "contact": "Contact"
+  },
+  "hero": {
+    "title": "Mtskheta Riviera",
+    "subtitle": "Cruise the Ancient Waters of Georgia",
+    "description": "Experience the magic of Mtskheta from the Mtkvari River. Scenic boat tours beneath centuries-old cathedrals, lush willow trees, and breathtaking mountain views.",
+    "cta": "Book Your Cruise",
+    "ctaSecondary": "Explore Gallery",
+    "book_cta": "Book Your Cruise",
+    "explore_cta": "Explore Gallery",
+    "scroll_down": "Scroll Down"
+  },
+  "about": {
+    "sectionTitle": "Discover the Experience",
+    "sectionSubtitle": "Where History Meets the River",
+    "title": "Discover the Experience",
+    "subtitle": "Where History Meets the River",
+    "description": "Mtskheta Riviera offers an unforgettable river cruise experience in Georgia's ancient capital. Glide along the Mtkvari River and witness the stunning Svetitskhoveli Cathedral, Jvari Monastery, and the confluence of two great rivers.",
+    "features": {
+      "cruise": {
+        "title": "River Cruises",
+        "description": "2-hour scenic cruises along the Mtkvari with panoramic views of Mtskheta's UNESCO heritage sites.",
+        "desc": "2-hour scenic cruises along the Mtkvari with panoramic views of Mtskheta's UNESCO heritage sites."
+      },
+      "cruises": {
+        "title": "River Cruises",
+        "description": "2-hour scenic cruises along the Mtkvari with panoramic views of Mtskheta's UNESCO heritage sites.",
+        "desc": "2-hour scenic cruises along the Mtkvari with panoramic views of Mtskheta's UNESCO heritage sites."
+      },
+      "events": {
+        "title": "Private Events",
+        "description": "Celebrate birthdays, anniversaries, and special occasions on the water with our customized event packages.",
+        "desc": "Celebrate birthdays, anniversaries, and special occasions on the water with our customized event packages."
+      },
+      "dining": {
+        "title": "Onboard Dining",
+        "description": "Savor traditional Georgian cuisine and fine wines while enjoying the sunset over the mountains.",
+        "desc": "Savor traditional Georgian cuisine and fine wines while enjoying the sunset over the mountains."
+      },
+      "sunset": {
+        "title": "Sunset Tours",
+        "description": "Our most popular tour — watch the golden hour paint Mtskheta's skyline as you cruise the river.",
+        "desc": "Our most popular tour — watch the golden hour paint Mtskheta's skyline as you cruise the river."
+      }
+    }
+  },
+  "gallery": {
+    "sectionTitle": "Visual Journey",
+    "sectionSubtitle": "Explore the Beauty",
+    "title": "Visual Journey",
+    "subtitle": "Explore the Beauty",
+    "description": "Use your finger (or mouse) to swipe through our visual journey. Tap any photo to explore in high-resolution.",
+    "close": "Close"
+  },
+  "booking": {
+    "sectionTitle": "Book Your Adventure",
+    "sectionSubtitle": "Reserve Your Spot",
+    "title": "Book Your Adventure",
+    "subtitle": "Reserve Your Spot",
+    "selectDate": "Select Date & Time",
+    "selectTime": "Select Time Slot",
+    "guests": "Number of Guests",
+    "guestLabel": "guests",
+    "pricePerPerson": "Tour Rate",
+    "total": "Total",
+    "currency": "GEL",
+    "payNow": "Pay & Reserve",
+    "processing": "Processing...",
+    "timeSlots": {
+      "morning": "Morning Cruise",
+      "midday": "Midday Cruise",
+      "afternoon": "Afternoon Cruise",
+      "sunset": "Sunset Cruise",
+      "evening": "Evening Cruise",
+      "vip": "VIP Cruise"
+    },
+    "duration_30": "30 Min",
+    "duration_vip": "Time & Price By Agreement",
+    "whatsapp_btn": "Book via WhatsApp",
+    "whatsapp_desc": "Direct contact & reservation",
+    "messenger_btn": "Book via Messenger",
+    "email_btn": "Book via Email",
+    "summaryTitle": "Summary & Reservation",
+    "dateLabel": "Date:",
+    "timeLabel": "Time / Tour:",
+    "tour_standard": "Standard Cruise",
+    "tour_standard_desc": "30 Min (Select Time)",
+    "tour_vip": "VIP Cruise",
+    "select_time_slot": "Select desired time:",
+    "custom_time_label": "Enter desired time:",
+    "custom_time_placeholder": "e.g. 16:00 or 18:30",
+    "not_specified": "Time not specified",
+    "or_form_title": "Or fill out the direct reservation form",
+    "name_placeholder": "Full Name *",
+    "phone_placeholder": "Phone Number *",
+    "email_placeholder": "Email Address *",
+    "by_agreement": "By Agreement",
+    "confirmation": {
+      "title": "Booking Confirmed!",
+      "message": "Your river cruise has been reserved. We will contact you to confirm.",
+      "close": "Done"
+    },
+    "invalidPhone": "Please enter a valid phone number",
+    "contactUs": "Call or text us"
+  },
+  "location": {
+    "sectionTitle": "Find Us",
+    "sectionSubtitle": "On the Banks of the Mtkvari",
+    "title": "Find Us",
+    "subtitle": "On the Banks of the Mtkvari",
+    "address": "Mtskheta, Georgia",
+    "mapLabel": "Mtskheta Riviera Dock",
+    "directions": "Get Directions",
+    "weather": {
+      "title": "Current Weather",
+      "feelsLike": "Feels like",
+      "humidity": "Humidity",
+      "wind": "Wind",
+      "planVisit": "Plan your visit with live weather"
+    }
+  },
+  "footer": {
+    "tagline": "Experience Georgia from the Water",
+    "quickLinks": "Quick Links",
+    "quick_links": "Quick Links",
+    "contactUs": "Contact Us",
+    "contact_us": "Contact Us",
+    "followUs": "Follow Us",
+    "follow_us": "Follow Us",
+    "phone": "+995 599 455 353",
+    "email": "info@mtskhetariviera.ge",
+    "copyright": "© 2024 Mtskheta Riviera. All rights reserved.",
+    "rights_reserved": "All rights reserved.",
+    "madeWith": "Made with in Georgia",
+    "daily": "Daily",
+    "links": {
+      "home": "Home",
+      "about": "About",
+      "gallery": "Gallery",
+      "booking": "Book Now",
+      "location": "Location",
+      "contact": "Contact"
+    }
+  },
+  "common": {
+    "learnMore": "Learn More",
+    "viewAll": "View All",
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "whatsapp": "Chat on WhatsApp",
+    "facebook": "Follow on Facebook"
+  }
+}

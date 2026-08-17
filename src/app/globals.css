@@ -1,26 +1,232 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --color-deep: #06140e;
+  --color-forest: #0e2a1d;
+  --color-forest-light: #18422e;
+  --color-olive: #1e422b;
+  --color-olive-light: #2a5d3c;
+  --color-gold: #c9a84c;
+  --color-gold-light: #e5c973;
+  --color-gold-dark: #a18131;
+  --color-cream: #f5f0e8;
+  --color-cream-dark: #e8e0d0;
+  --color-river: #2d5a42;
+  --color-river-light: #428260;
+
+  --font-sans: 'Inter', sans-serif;
+  --font-georgian: 'Noto Sans Georgian', sans-serif;
+
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-pulse-gold: pulse-gold 2s ease-in-out infinite;
+  --animate-shimmer: shimmer 3s ease-in-out infinite;
+  --animate-water-ripple: water-ripple 4s ease-in-out infinite;
+  --animate-bounce-slow: bounce-slow 3s ease-in-out infinite;
+  --animate-fade-in: fade-in 0.8s ease-out forwards;
+  --animate-slide-up: slide-up 0.8s ease-out forwards;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ===== Smooth Scrolling ===== */
+html {
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-gold) var(--color-deep);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  background-color: #06140e;
+  color: var(--color-cream);
+  overflow-x: hidden;
+}
+
+/* Georgian font for ka locale */
+[lang="ka"] body,
+[lang="ka"] * {
+  font-family: var(--font-georgian), var(--font-sans);
+}
+
+/* ===== Custom Scrollbar ===== */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #06140e;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom, var(--color-gold), var(--color-gold-dark));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-gold-light);
+}
+
+/* ===== Keyframe Animations ===== */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-15px); }
+}
+
+@keyframes pulse-gold {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(201, 168, 76, 0.4); }
+  50% { box-shadow: 0 0 20px 10px rgba(201, 168, 76, 0.1); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes water-ripple {
+  0%, 100% { transform: scaleX(1); }
+  50% { transform: scaleX(1.02); }
+}
+
+@keyframes bounce-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== Glassmorphism Utility ===== */
+.glass {
+  background: rgba(14, 42, 29, 0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(201, 168, 76, 0.2);
+}
+
+.glass-green {
+  background: rgba(14, 42, 29, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(201, 168, 76, 0.3);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.glass-light {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glass-gold {
+  background: rgba(201, 168, 76, 0.1);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(201, 168, 76, 0.35);
+}
+
+/* ===== Text Gradient ===== */
+.text-gradient-gold {
+  background: linear-gradient(135deg, var(--color-gold-light), var(--color-gold), var(--color-gold-dark));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ===== Touch Target & Mobile Optimizations ===== */
+.touch-target {
+  min-width: 48px;
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-center: center;
+}
+
+/* ===== Gold Hover Glow ===== */
+.hover-glow {
+  transition: all 0.3s ease;
+}
+
+.hover-glow:hover, .hover-glow:active {
+  box-shadow: 0 0 25px rgba(201, 168, 76, 0.35), 0 0 50px rgba(201, 168, 76, 0.15);
+  border-color: rgba(201, 168, 76, 0.6);
+}
+
+/* ===== Button Styles ===== */
+.btn-gold {
+  background: linear-gradient(135deg, var(--color-gold-light), var(--color-gold));
+  color: #06140e;
+  font-weight: 700;
+  padding: 1rem 2.25rem;
+  border-radius: 9999px;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  min-height: 52px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 15px rgba(201, 168, 76, 0.25);
+}
+
+.btn-gold:hover, .btn-gold:active {
+  background: linear-gradient(135deg, #f3de96, var(--color-gold-light));
+  box-shadow: 0 6px 25px rgba(201, 168, 76, 0.5);
+  transform: translateY(-2px);
+}
+
+.btn-outline-gold {
+  border: 2px solid var(--color-gold);
+  color: var(--color-gold-light);
+  font-weight: 600;
+  padding: 1rem 2.25rem;
+  border-radius: 9999px;
+  transition: all 0.3s ease;
+  background: rgba(6, 20, 14, 0.6);
+  backdrop-filter: blur(10px);
+  min-height: 52px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-outline-gold:hover, .btn-outline-gold:active {
+  background: rgba(201, 168, 76, 0.2);
+  border-color: var(--color-gold-light);
+  color: #ffffff;
+  box-shadow: 0 4px 20px rgba(201, 168, 76, 0.3);
+  transform: translateY(-2px);
+}
+
+/* ===== WhatsApp Pulse ===== */
+.whatsapp-pulse {
+  animation: whatsapp-ring 2s ease-in-out infinite;
+}
+
+@keyframes whatsapp-ring {
+  0% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.5); }
+  70% { box-shadow: 0 0 0 18px rgba(37, 211, 102, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0); }
+}
+
+/* ===== Canvas Container ===== */
+.canvas-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+/* ===== Selection Color ===== */
+::selection {
+  background-color: rgba(201, 168, 76, 0.3);
+  color: var(--color-cream);
 }
