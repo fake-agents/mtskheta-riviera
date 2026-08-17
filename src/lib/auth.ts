@@ -13,8 +13,10 @@ interface AdminCredential {
 /** Parse the ADMIN_CREDENTIALS env var (JSON array). */
 function getAdminCredentials(): AdminCredential[] {
   try {
+    console.log("process.env.ADMIN_CREDENTIALS is:", process.env.ADMIN_CREDENTIALS);
     return JSON.parse(process.env.ADMIN_CREDENTIALS || '[]');
-  } catch {
+  } catch (err) {
+    console.error("Error parsing ADMIN_CREDENTIALS:", err);
     return [];
   }
 }

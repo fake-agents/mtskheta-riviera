@@ -9,7 +9,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
     }
 
+    console.log("Login Attempt:", { email, password });
     const isValid = await validateAdmin(email, password);
+    console.log("IsValid result:", isValid);
+    
     if (!isValid) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
@@ -26,7 +29,8 @@ export async function POST(request: NextRequest) {
     });
 
     return response;
-  } catch {
+  } catch (error) {
+    console.error("Login Route Error:", error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
