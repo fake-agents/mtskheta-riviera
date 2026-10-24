@@ -17,9 +17,19 @@ interface Category {
   color: string;
 }
 
+interface IncomeEntry {
+  date: string;
+  totalGel: number;
+  tripsCount: number;
+}
+
+const SALARY_BASE_GEL = 2000;
+const SALARY_PERCENT = 0.10;
+
 export default function AdminCostsPage() {
   const [costs, setCosts] = useState<CostEntry[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [incomes, setIncomes] = useState<Record<string, IncomeEntry>>({});
   const [loading, setLoading] = useState(true);
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
@@ -32,16 +42,23 @@ export default function AdminCostsPage() {
 
   const fetchData = async () => {
     try {
-      const [costsRes, catsRes] = await Promise.all([
+      const [costsRes, catsRes, incRes] = await Promise.all([
         fetch('/api/admin/costs'),
         fetch('/api/admin/cost-categories'),
+        fetch('/api/admin/incomes'),
       ]);
       const costsData = await costsRes.json();
       const catsData = await catsRes.json();
+      const incData = await incRes.json();
       if (Array.isArray(costsData)) setCosts(costsData);
       if (Array.isArray(catsData)) {
         setCategories(catsData);
         if (catsData.length > 0) setNewCategoryId(catsData[0].id);
+      }
+      if (Array.isArray(incData)) {
+        const map: Record<string, IncomeEntry> = {};
+        incData.forEach((item: IncomeEntry) => { map[item.date] = item; });
+        setIncomes(map);
       }
     } catch {}
     setLoading(false);
@@ -88,6 +105,30 @@ export default function AdminCostsPage() {
     });
     return { total, count };
   }, [costs, currentMonth]);
+
+  const monthlyIncomeTotal = useMemo(() => {
+    const prefix = `${currentMonth.getFullYear()}-${(currentMonth.getMonth() + 1).toString().padStart(2, '0')}`;
+    let sum = 0;
+    Object.values(incomes).forEach(inc => {
+      if (inc.date && inc.date.startsWith(prefix)) {
+        sum += inc.totalGel || 0;
+      }
+    });
+    return sum;
+  }, [incomes, currentMonth]);
+
+  const monthlySalary = useMemo(() => {
+    const hasActivity = monthlyIncomeTotal > 0 || monthlyData.total > 0 || monthlyData.count > 0;
+    return hasActivity ? (SALARY_BASE_GEL + Math.round(monthlyIncomeTotal * SALARY_PERCENT)) : 0;
+  }, [monthlyIncomeTotal, monthlyData]);
+
+  const monthlySalaryBonus = useMemo(() => {
+    return Math.round(monthlyIncomeTotal * SALARY_PERCENT);
+  }, [monthlyIncomeTotal]);
+
+  const totalCostsWithSalary = useMemo(() => {
+    return monthlyData.total + monthlySalary;
+  }, [monthlyData.total, monthlySalary]);
 
   const getCategoryById = (id: number) => categories.find(c => c.id === id);
 
@@ -247,12 +288,35 @@ export default function AdminCostsPage() {
 
               <div className="space-y-4">
                 <div className="bg-[#0a0f1a] rounded-xl p-4 border border-red-500/20">
-                  <p className="text-xs text-red-500/70 uppercase tracking-wider font-semibold mb-1">Total Costs</p>
+                  <p className="text-xs text-red-500/70 uppercase tracking-wider font-semibold mb-1">Operating Costs</p>
                   <p className="text-3xl font-bold text-red-400">{monthlyData.total.toLocaleString()} ₾</p>
+                  <p className="text-[11px] text-white/40 mt-1">{monthlyData.count} logged {monthlyData.count === 1 ? 'entry' : 'entries'}</p>
+                </div>
+
+                <div className="bg-[#0a0f1a] rounded-xl p-4 border border-blue-500/20">
+                  <div className="flex justify-between items-center mb-1">
+                    <p className="text-xs text-blue-400 uppercase tracking-wider font-semibold">Salary</p>
+                    <span className="text-[10px] text-blue-400/70 font-mono">2,000 ₾ + 10%</span>
+                  </div>
+                  <p className="text-3xl font-bold text-blue-400">{monthlySalary.toLocaleString()} ₾</p>
+                  {monthlySalary > 0 && (
+                    <div className="text-[11px] text-white/40 mt-1 space-y-0.5">
+                      <p>2,000 ₾ base + {monthlySalaryBonus.toLocaleString()} ₾ (10%)</p>
+                      <p className="text-[10px] text-white/30">From {monthlyIncomeTotal.toLocaleString()} ₾ income</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="bg-[#0a0f1a] rounded-xl p-4 border border-purple-500/20">
+                  <p className="text-xs text-purple-400/80 uppercase tracking-wider font-semibold mb-1">Total Costs (incl. Salary)</p>
+                  <p className="text-3xl font-bold text-purple-400">{totalCostsWithSalary.toLocaleString()} ₾</p>
+                  <p className="text-[10px] text-white/30 mt-1">
+                    {monthlyData.total.toLocaleString()} ₾ costs + {monthlySalary.toLocaleString()} ₾ salary
+                  </p>
                 </div>
 
                 <div className="bg-[#0a0f1a] rounded-xl p-4 border border-[#c9a84c]/20">
-                  <p className="text-xs text-[#c9a84c]/70 uppercase tracking-wider font-semibold mb-1">Entries</p>
+                  <p className="text-xs text-[#c9a84c]/70 uppercase tracking-wider font-semibold mb-1">Cost Entries</p>
                   <p className="text-3xl font-bold text-[#c9a84c]">{monthlyData.count}</p>
                 </div>
               </div>

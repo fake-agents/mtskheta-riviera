@@ -28,6 +28,9 @@ interface CostCategory {
   color: string;
 }
 
+const SALARY_BASE_GEL = 2000;
+const SALARY_PERCENT = 0.10;
+
 export default function AdminIncomesPage() {
   const [incomes, setIncomes] = useState<Record<string, DailyIncome>>({});
   const [costs, setCosts] = useState<CostEntry[]>([]);
@@ -156,7 +159,26 @@ export default function AdminIncomesPage() {
 
     const maxMonthGel = Math.max(...months.map(m => m.totalGel), 1); // prevent div by 0
 
-    return { months, yearTotalGel, yearTotalTrips, maxMonthGel, yearTotalCosts };
+    let yearTotalSalary = 0;
+    const monthsWithStats = months.map(m => {
+      const hasActivity = m.totalGel > 0 || m.tripsCount > 0 || m.totalCosts > 0;
+      const salary = hasActivity ? (SALARY_BASE_GEL + Math.round(m.totalGel * SALARY_PERCENT)) : 0;
+      const netProfit = m.totalGel - m.totalCosts - salary;
+      yearTotalSalary += salary;
+      return { ...m, salary, netProfit };
+    });
+
+    const yearNetProfit = yearTotalGel - yearTotalCosts - yearTotalSalary;
+
+    return { 
+      months: monthsWithStats, 
+      yearTotalGel, 
+      yearTotalTrips, 
+      maxMonthGel, 
+      yearTotalCosts, 
+      yearTotalSalary, 
+      yearNetProfit 
+    };
   }, [incomes, costs, currentYear]);
 
   // ─── Monthly View Data ────────────────────────────────────────────────────────
@@ -195,6 +217,19 @@ export default function AdminIncomesPage() {
     const prefix = `${currentMonth.getFullYear()}-${(currentMonth.getMonth() + 1).toString().padStart(2, '0')}`;
     return costs.filter(c => c.date.startsWith(prefix)).reduce((s, c) => s + c.amountGel, 0);
   }, [costs, currentMonth]);
+
+  const monthlySalary = useMemo(() => {
+    const hasActivity = monthlyData.monthTotalGel > 0 || monthlyData.monthTotalTrips > 0 || monthlyCostTotal > 0;
+    return hasActivity ? (SALARY_BASE_GEL + Math.round(monthlyData.monthTotalGel * SALARY_PERCENT)) : 0;
+  }, [monthlyData, monthlyCostTotal]);
+
+  const monthlySalaryBonus = useMemo(() => {
+    return Math.round(monthlyData.monthTotalGel * SALARY_PERCENT);
+  }, [monthlyData.monthTotalGel]);
+
+  const monthlyNetProfit = useMemo(() => {
+    return monthlyData.monthTotalGel - monthlyCostTotal - monthlySalary;
+  }, [monthlyData.monthTotalGel, monthlyCostTotal, monthlySalary]);
 
   // ─── Dashboard Data Preparation ────────────────────────────────────────────────
   const chartData = useMemo(() => {
@@ -238,6 +273,30 @@ export default function AdminIncomesPage() {
     return { monthlyChart, weekdayChart, totalTrips, totalRevenue, avgDaily };
   }, [incomes]);
 
+  // Salary dashboard data
+  const salaryDashboard = useMemo(() => {
+    const activeMonths = new Set<string>();
+    Object.values(incomes).forEach(inc => {
+      if (inc.totalGel > 0 || inc.tripsCount > 0) {
+        activeMonths.add(inc.date.substring(0, 7)); // YYYY-MM
+      }
+    });
+    costs.forEach(c => {
+      activeMonths.add(c.date.substring(0, 7));
+    });
+
+    let totalSalary = 0;
+    activeMonths.forEach(mPrefix => {
+      let mRev = 0;
+      Object.values(incomes).forEach(inc => {
+        if (inc.date.startsWith(mPrefix)) mRev += inc.totalGel;
+      });
+      totalSalary += SALARY_BASE_GEL + Math.round(mRev * SALARY_PERCENT);
+    });
+
+    return { totalSalary, monthsCount: activeMonths.size };
+  }, [incomes, costs]);
+
   // Costs dashboard data
   const costsDashboard = useMemo(() => {
     let totalCosts = 0;
@@ -256,8 +315,10 @@ export default function AdminIncomesPage() {
       };
     }).sort((a, b) => b.value - a.value);
 
-    return { totalCosts, pieData, netProfit: chartData.totalRevenue - totalCosts };
-  }, [costs, categories, chartData.totalRevenue]);
+    const totalNetProfit = chartData.totalRevenue - totalCosts - salaryDashboard.totalSalary;
+
+    return { totalCosts, pieData, netProfit: totalNetProfit };
+  }, [costs, categories, chartData.totalRevenue, salaryDashboard.totalSalary]);
 
   return (
     <AdminShell>
@@ -317,15 +378,27 @@ export default function AdminIncomesPage() {
               </button>
             </div>
 
-            <div className="flex items-center gap-4 sm:gap-6 bg-[#0a0f1a] px-5 py-3 rounded-xl border border-white/5 w-full sm:w-auto justify-center sm:justify-end">
+            <div className="flex items-center gap-4 sm:gap-6 bg-[#0a0f1a] px-5 py-3 rounded-xl border border-white/5 w-full sm:w-auto justify-center sm:justify-end flex-wrap">
               <div className="text-left">
                 <p className="text-[10px] text-emerald-500/70 uppercase tracking-wider font-bold mb-0.5">Total Income</p>
                 <p className="text-lg sm:text-xl font-bold text-emerald-400">{yearlyData.yearTotalGel.toLocaleString()} ₾</p>
               </div>
-              <div className="w-px h-8 bg-white/10"></div>
+              <div className="w-px h-8 bg-white/10 hidden sm:block"></div>
               <div className="text-left">
                 <p className="text-[10px] text-red-500/70 uppercase tracking-wider font-bold mb-0.5">Total Costs</p>
                 <p className="text-lg sm:text-xl font-bold text-red-400">{yearlyData.yearTotalCosts.toLocaleString()} ₾</p>
+              </div>
+              <div className="w-px h-8 bg-white/10 hidden sm:block"></div>
+              <div className="text-left">
+                <p className="text-[10px] text-blue-400/80 uppercase tracking-wider font-bold mb-0.5">Total Salary</p>
+                <p className="text-lg sm:text-xl font-bold text-blue-400">{yearlyData.yearTotalSalary.toLocaleString()} ₾</p>
+              </div>
+              <div className="w-px h-8 bg-white/10 hidden sm:block"></div>
+              <div className="text-left">
+                <p className="text-[10px] text-white/50 uppercase tracking-wider font-bold mb-0.5">Net Profit</p>
+                <p className={`text-lg sm:text-xl font-bold ${yearlyData.yearNetProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                  {yearlyData.yearNetProfit.toLocaleString()} ₾
+                </p>
               </div>
             </div>
           </div>
@@ -366,6 +439,20 @@ export default function AdminIncomesPage() {
                       <div className="flex justify-between items-end pt-1 border-t border-white/5">
                         <div className="text-white/50 text-[10px] uppercase tracking-wider font-semibold">Costs</div>
                         <div className="text-red-400 font-bold text-sm">-{m.totalCosts.toLocaleString()} ₾</div>
+                      </div>
+                    )}
+                    {m.salary > 0 && (
+                      <div className="flex justify-between items-end pt-1 border-t border-white/5">
+                        <div className="text-white/50 text-[10px] uppercase tracking-wider font-semibold">Salary</div>
+                        <div className="text-blue-400 font-bold text-sm">-{m.salary.toLocaleString()} ₾</div>
+                      </div>
+                    )}
+                    {(m.totalGel > 0 || m.totalCosts > 0 || m.salary > 0) && (
+                      <div className="flex justify-between items-end pt-1 border-t border-white/10">
+                        <div className="text-white/70 text-[10px] uppercase tracking-wider font-bold">Net Profit</div>
+                        <div className={`font-bold text-sm ${m.netProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                          {m.netProfit.toLocaleString()} ₾
+                        </div>
                       </div>
                     )}
                   </div>
@@ -504,11 +591,27 @@ export default function AdminIncomesPage() {
                   <p className="text-xs text-red-500/70 uppercase tracking-wider font-semibold mb-1">Total Costs</p>
                   <p className="text-3xl font-bold text-red-400">{monthlyCostTotal.toLocaleString()} ₾</p>
                 </div>
+
+                <div className="bg-[#0a0f1a] rounded-xl p-4 border border-blue-500/20">
+                  <div className="flex justify-between items-center mb-1">
+                    <p className="text-xs text-blue-400 uppercase tracking-wider font-semibold">Salary</p>
+                    <span className="text-[10px] text-blue-400/70 font-mono">2,000 ₾ + 10%</span>
+                  </div>
+                  <p className="text-3xl font-bold text-blue-400">{monthlySalary.toLocaleString()} ₾</p>
+                  {monthlySalary > 0 && (
+                    <p className="text-[11px] text-white/40 mt-1">
+                      2,000 ₾ base + {monthlySalaryBonus.toLocaleString()} ₾ (10%)
+                    </p>
+                  )}
+                </div>
                 
-                <div className={`bg-[#0a0f1a] rounded-xl p-4 border ${(monthlyData.monthTotalGel - monthlyCostTotal) >= 0 ? 'border-emerald-500/20' : 'border-red-500/20'}`}>
+                <div className={`bg-[#0a0f1a] rounded-xl p-4 border ${monthlyNetProfit >= 0 ? 'border-emerald-500/20' : 'border-red-500/20'}`}>
                   <p className="text-xs text-white/50 uppercase tracking-wider font-semibold mb-1">Net Profit</p>
-                  <p className={`text-3xl font-bold ${(monthlyData.monthTotalGel - monthlyCostTotal) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                    {(monthlyData.monthTotalGel - monthlyCostTotal).toLocaleString()} ₾
+                  <p className={`text-3xl font-bold ${monthlyNetProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {monthlyNetProfit.toLocaleString()} ₾
+                  </p>
+                  <p className="text-[10px] text-white/30 mt-1">
+                    Income - Costs - Salary
                   </p>
                 </div>
 
@@ -533,7 +636,7 @@ export default function AdminIncomesPage() {
       ) : (
         <div className="space-y-6">
           {/* Dashboard View */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4">
             <div className="bg-[#111827] border border-white/10 rounded-2xl p-6">
               <p className="text-sm text-white/50 mb-1">Total Revenue</p>
               <p className="text-2xl font-bold text-emerald-400">{chartData.totalRevenue.toLocaleString()} ₾</p>
@@ -541,6 +644,13 @@ export default function AdminIncomesPage() {
             <div className="bg-[#111827] border border-red-500/10 rounded-2xl p-6">
               <p className="text-sm text-white/50 mb-1">Total Costs</p>
               <p className="text-2xl font-bold text-red-400">{costsDashboard.totalCosts.toLocaleString()} ₾</p>
+            </div>
+            <div className="bg-[#111827] border border-blue-500/10 rounded-2xl p-6">
+              <div className="flex justify-between items-center mb-1">
+                <p className="text-sm text-white/50">Total Salary</p>
+                <span className="text-[10px] text-blue-400/60 font-mono">2,000 + 10%</span>
+              </div>
+              <p className="text-2xl font-bold text-blue-400">{salaryDashboard.totalSalary.toLocaleString()} ₾</p>
             </div>
             <div className={`bg-[#111827] border rounded-2xl p-6 ${costsDashboard.netProfit >= 0 ? 'border-emerald-500/10' : 'border-red-500/10'}`}>
               <p className="text-sm text-white/50 mb-1">Net Profit</p>
